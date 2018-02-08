@@ -2,6 +2,7 @@
 using Nancy.Bootstrapper;
 using Nancy.Metrics;
 
+// ReSharper disable once CheckNamespace
 namespace Metrics
 {
     /// <summary>

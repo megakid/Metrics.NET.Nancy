@@ -8,24 +8,18 @@ namespace Nancy.Metrics
     {
         private const string RequestStartTimeKey = "__Metrics.RequestStartTime__";
 
-        private static MetricsContext nancyGlobalMetricsContext;
+        private static MetricsContext _nancyGlobalMetricsContext;
 
-        public static MetricsContext NancyGlobalMetricsContext
-        {
-            get
-            {
-                return nancyGlobalMetricsContext ?? Metric.Context("NancyFx");
-            }
-        }
+        public static MetricsContext NancyGlobalMetricsContext => _nancyGlobalMetricsContext ?? Metric.Context("NancyFx");
 
-        private readonly MetricsContext context;
-        private readonly IPipelines nancyPipelines;
+        private readonly MetricsContext _context;
+        private readonly IPipelines _nancyPipelines;
 
         public NancyGlobalMetrics(MetricsContext context, IPipelines nancyPipelines)
         {
-            this.nancyPipelines = nancyPipelines;
-            this.context = context;
-            nancyGlobalMetricsContext = context;
+            _nancyPipelines = nancyPipelines;
+            _context = context;
+            _nancyGlobalMetricsContext = context;
         }
 
         /// <summary>
@@ -39,7 +33,7 @@ namespace Nancy.Metrics
         /// </summary>
         public NancyGlobalMetrics WithAllMetrics()
         {
-            return this.WithRequestTimer()
+            return WithRequestTimer()
                 .WithErrorsMeter()
                 .WithActiveRequestCounter()
                 .WithPostPutAndPatchRequestSizeHistogram()
@@ -53,22 +47,20 @@ namespace Nancy.Metrics
         /// <param name="metricName">Name of the metric.</param>
         public NancyGlobalMetrics WithRequestTimer(string metricName = "Requests")
         {
-            var requestTimer = this.context.Timer(metricName, Unit.Requests);
+            var requestTimer = _context.Timer(metricName, Unit.Requests);
 
-            nancyPipelines.BeforeRequest.AddItemToStartOfPipeline(ctx =>
+            _nancyPipelines.BeforeRequest.AddItemToStartOfPipeline(ctx =>
             {
                 ctx.Items[RequestStartTimeKey] = requestTimer.StartRecording();
                 return null;
             });
 
-            nancyPipelines.AfterRequest.AddItemToEndOfPipeline(ctx =>
+            _nancyPipelines.AfterRequest.AddItemToEndOfPipeline(ctx =>
             {
-                object timer;
-                if (ctx.Items.TryGetValue(RequestStartTimeKey, out timer))
+                if (ctx.Items.TryGetValue(RequestStartTimeKey, out var timer))
                 {
-                    if (timer is long)
+                    if (timer is long startTime)
                     {
-                        var startTime = (long)timer;
                         var endTime = requestTimer.EndRecording();
                         requestTimer.Record(endTime - startTime, TimeUnit.Nanoseconds);
                     }
@@ -86,9 +78,9 @@ namespace Nancy.Metrics
         /// <param name="metricName">Name of the metric.</param>
         public NancyGlobalMetrics WithErrorsMeter(string metricName = "Errors")
         {
-            var errorMeter = this.context.Meter(metricName, Unit.Errors, TimeUnit.Seconds);
+            var errorMeter = _context.Meter(metricName, Unit.Errors, TimeUnit.Seconds);
 
-            nancyPipelines.OnError.AddItemToStartOfPipeline((ctx, ex) =>
+            _nancyPipelines.OnError.AddItemToStartOfPipeline((ctx, ex) =>
             {
                 errorMeter.Mark();
                 return null;
@@ -103,15 +95,15 @@ namespace Nancy.Metrics
         /// <param name="metricName">Name of the metric.</param>
         public NancyGlobalMetrics WithActiveRequestCounter(string metricName = "Active Requests")
         {
-            var counter = this.context.Counter(metricName, Unit.Custom("ActiveRequests"));
+            var counter = _context.Counter(metricName, Unit.Custom("ActiveRequests"));
 
-            nancyPipelines.BeforeRequest.AddItemToStartOfPipeline(ctx =>
+            _nancyPipelines.BeforeRequest.AddItemToStartOfPipeline(ctx =>
             {
                 counter.Increment();
                 return null;
             });
 
-            nancyPipelines.AfterRequest.AddItemToEndOfPipeline(ctx =>
+            _nancyPipelines.AfterRequest.AddItemToEndOfPipeline(ctx =>
             {
                 counter.Decrement();
             });
@@ -125,9 +117,9 @@ namespace Nancy.Metrics
         /// <param name="metricName">Name of the metric.</param>
         public NancyGlobalMetrics WithPostPutAndPatchRequestSizeHistogram(string metricName = "Post, Put & Patch Request Size")
         {
-            var histogram = this.context.Histogram(metricName, Unit.Bytes);
+            var histogram = _context.Histogram(metricName, Unit.Bytes);
 
-            nancyPipelines.BeforeRequest.AddItemToStartOfPipeline(ctx =>
+            _nancyPipelines.BeforeRequest.AddItemToStartOfPipeline(ctx =>
             {
                 var method = ctx.Request.Method.ToUpper();
                 if (method == "POST" || method == "PUT" || method == "PATCH")
@@ -147,20 +139,20 @@ namespace Nancy.Metrics
         /// </summary>
         public NancyGlobalMetrics WithTimerForEachRequest()
         {
-            nancyPipelines.BeforeRequest.AddItemToStartOfPipeline(ctx =>
+            _nancyPipelines.BeforeRequest.AddItemToStartOfPipeline(ctx =>
             {
                 ctx.Items["RequestStartTimeKey"] = Clock.Default.Nanoseconds;
                 return null;
             });
 
-            nancyPipelines.AfterRequest.AddItemToEndOfPipeline(ctx =>
+            _nancyPipelines.AfterRequest.AddItemToEndOfPipeline(ctx =>
             {
                 if (ctx.ResolvedRoute != null && !(ctx.ResolvedRoute is Routing.NotFoundRoute))
                 {
-                    string name = string.Format("{0} {1}", ctx.ResolvedRoute.Description.Method, ctx.ResolvedRoute.Description.Path);
+                    string name = $"{ctx.ResolvedRoute.Description.Method} {ctx.ResolvedRoute.Description.Path}";
                     var startTime = (long)ctx.Items["RequestStartTimeKey"];
                     var elapsed = Clock.Default.Nanoseconds - startTime;
-                    this.context.Timer(name, Unit.Requests)
+                    _context.Timer(name, Unit.Requests)
                         .Record(elapsed, TimeUnit.Nanoseconds);
                 }
             });

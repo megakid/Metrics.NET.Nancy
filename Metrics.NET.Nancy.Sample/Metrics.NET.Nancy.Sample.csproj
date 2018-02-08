@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net461</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metrics.NET" Version="0.5.3" />
+    <PackageReference Include="Nancy" Version="1.2.0" />
+    <PackageReference Include="Nancy.Authentication.Stateless" Version="1.2.0" />
+    <PackageReference Include="Nancy.Hosting.Self" Version="1.2.0" />
+    <PackageReference Include="Nancy.Serialization.JsonNet" Version="1.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="6.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Metrics.NET.Nancy\Metrics.NET.Nancy.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\Microsoft.CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -9,22 +9,22 @@ namespace Nancy.Metrics
     {
         public static readonly NancyMetricsConfig Disabled = new NancyMetricsConfig();
 
-        private readonly MetricsContext metricsContext;
-        private readonly Func<HealthStatus> healthStatus;
-        private readonly IPipelines nancyPipelines;
+        private readonly MetricsContext _metricsContext;
+        private readonly Func<HealthStatus> _healthStatus;
+        private readonly IPipelines _nancyPipelines;
 
-        private readonly bool isDiabled;
+        private readonly bool _isDiabled;
 
         public NancyMetricsConfig(MetricsContext metricsContext, Func<HealthStatus> healthStatus, IPipelines nancyPipelines)
         {
-            this.metricsContext = metricsContext;
-            this.healthStatus = healthStatus;
-            this.nancyPipelines = nancyPipelines;
+            _metricsContext = metricsContext;
+            _healthStatus = healthStatus;
+            _nancyPipelines = nancyPipelines;
         }
 
         private NancyMetricsConfig()
         {
-            this.isDiabled = true;
+            _isDiabled = true;
         }
 
         /// <summary>
@@ -46,12 +46,12 @@ namespace Nancy.Metrics
         /// <returns>This instance to allow chaining of the configuration.</returns>
         public NancyMetricsConfig WithNancyMetrics(Action<NancyGlobalMetrics> config, string context = "NancyFx")
         {
-            if (this.isDiabled)
+            if (_isDiabled)
             {
                 return this;
             }
 
-            var globalMetrics = new NancyGlobalMetrics(this.metricsContext.Context(context), this.nancyPipelines);
+            var globalMetrics = new NancyGlobalMetrics(_metricsContext.Context(context), _nancyPipelines);
             config(globalMetrics);
             return this;
         }
@@ -75,7 +75,7 @@ namespace Nancy.Metrics
         /// <returns>This instance to allow chaining of the configuration.</returns>
         public NancyMetricsConfig WithMetricsModule(string metricsPath = "/metrics")
         {
-            if (this.isDiabled)
+            if (_isDiabled)
             {
                 return this;
             }
@@ -103,7 +103,7 @@ namespace Nancy.Metrics
         /// <returns>This instance to allow chaining of the configuration.</returns>
         public NancyMetricsConfig WithMetricsModule(Action<MetricsEndpointReports> config, string metricsPath = "/metrics")
         {
-            if (this.isDiabled)
+            if (_isDiabled)
             {
                 return this;
             }
@@ -132,12 +132,12 @@ namespace Nancy.Metrics
         /// <returns>This instance to allow chaining of the configuration.</returns>
         public NancyMetricsConfig WithMetricsModule(Action<INancyModule> moduleConfig, Action<MetricsEndpointReports> config, string metricsPath = "/metrics")
         {
-            if (this.isDiabled)
+            if (_isDiabled)
             {
                 return this;
             }
 
-            var reportsConfig = new MetricsEndpointReports(this.metricsContext.DataProvider, this.healthStatus);
+            var reportsConfig = new MetricsEndpointReports(_metricsContext.DataProvider, _healthStatus);
             config(reportsConfig);
             MetricsModule.Configure(moduleConfig, reportsConfig, metricsPath);
             return this;

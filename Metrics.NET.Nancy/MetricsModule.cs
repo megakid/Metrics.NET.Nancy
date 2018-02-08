@@ -16,15 +16,15 @@ namespace Nancy.Metrics
 
             public ModuleConfig(Action<INancyModule> moduleConfig, NancyMetricsEndpointHandler handler, string metricsPath)
             {
-                this.ModuleConfigAction = moduleConfig;
-                this.ModulePath = metricsPath;
-                this.Handler = handler;
+                ModuleConfigAction = moduleConfig;
+                ModulePath = metricsPath;
+                Handler = handler;
             }
         }
 
-        private static ModuleConfig Config;
+        private static ModuleConfig _config;
 
-        private static readonly object[] noCacheHeaders = {
+        private static readonly object[] NoCacheHeaders = {
             new { Header = "Cache-Control", Value = "no-cache, no-store, must-revalidate" },
             new { Header = "Pragma", Value = "no-cache" },
             new { Header = "Expires", Value = "0" }
@@ -33,24 +33,24 @@ namespace Nancy.Metrics
         internal static void Configure(Action<INancyModule> moduleConfig, MetricsEndpointReports reports, string metricsPath)
         {
             var handler = new NancyMetricsEndpointHandler(reports.Endpoints);
-            MetricsModule.Config = new ModuleConfig(moduleConfig, handler, metricsPath);
+            _config = new ModuleConfig(moduleConfig, handler, metricsPath);
         }
 
         public MetricsModule()
-            : base(Config.ModulePath ?? "/")
+            : base(_config.ModulePath ?? "/")
         {
-            if (string.IsNullOrEmpty(Config.ModulePath))
+            if (string.IsNullOrEmpty(_config.ModulePath))
             {
                 return;
             }
 
-            Config.ModuleConfigAction?.Invoke(this);
+            _config.ModuleConfigAction?.Invoke(this);
 
             Get["/"] = _ =>
             {
-                if (!this.Request.Url.Path.EndsWith("/"))
+                if (!Request.Url.Path.EndsWith("/"))
                 {
-                    return Response.AsRedirect(this.Request.Url.ToString() + "/");
+                    return Response.AsRedirect(Request.Url.ToString() + "/");
                 }
                 var gzip = AcceptsGzip();
                 var response = Response.FromStream(FlotWebApp.GetAppStream(!gzip), "text/html");
@@ -64,29 +64,32 @@ namespace Nancy.Metrics
             Get["/{path*}"] = p =>
             {
                 var path = (string)p.path;
-                var endpointResponse = Config.Handler.Process(path, this.Request);
+                var endpointResponse = _config.Handler.Process(path, Request);
                 return endpointResponse != null ? GetResponse(endpointResponse) : HttpStatusCode.NotFound;
             };
         }
 
         private static Response GetResponse(MetricsEndpointResponse endpointResponse)
         {
-            var response = new Response();
-            response.StatusCode = (HttpStatusCode)endpointResponse.StatusCode;
-            response.ContentType = endpointResponse.ContentType;
-            response.Contents = stream =>
+            var response = new Response
             {
-                using (var writer = new StreamWriter(stream, endpointResponse.Encoding))
+                StatusCode = (HttpStatusCode) endpointResponse.StatusCode,
+                ContentType = endpointResponse.ContentType,
+                Contents = stream =>
                 {
-                    writer.Write(endpointResponse.Content);
+                    using (var writer = new StreamWriter(stream, endpointResponse.Encoding))
+                    {
+                        writer.Write(endpointResponse.Content);
+                    }
                 }
             };
-            return response.WithHeaders(noCacheHeaders);
+
+            return response.WithHeaders(NoCacheHeaders);
         }
 
         private bool AcceptsGzip()
         {
-            return this.Request.Headers.AcceptEncoding.Any(e => e.Equals("gzip", StringComparison.OrdinalIgnoreCase));
+            return Request.Headers.AcceptEncoding.Any(e => e.Equals("gzip", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

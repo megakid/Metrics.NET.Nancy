@@ -124,14 +124,14 @@ namespace Nancy.Metrics
         /// </summary>
         private sealed class NullStream : Stream
         {
-            private int bytesWritten;
+            private int _bytesWritten;
 
-            public override long Length { get { return this.bytesWritten; } }
+            public override long Length { get { return _bytesWritten; } }
 
             public override void Write(byte[] buffer, int offset, int count)
             {
                 // We assume we can't seek and can't overwrite, but don't throw just in case.
-                this.bytesWritten += count;
+                _bytesWritten += count;
             }
 
             public override void Flush() { }
